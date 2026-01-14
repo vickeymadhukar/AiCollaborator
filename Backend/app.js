@@ -11,8 +11,13 @@ connect();
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173", // your React app URL
-    credentials: true, // allow cookies to be sent
+    origin: [
+      "http://localhost:5173", // local dev
+      "https://aicollaborator-1.onrender.com", // production frontend
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 

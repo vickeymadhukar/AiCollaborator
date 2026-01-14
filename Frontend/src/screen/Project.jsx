@@ -7,17 +7,6 @@ import { initializeSocket, receviceMessage, sendMessage } from "../config/socket
 import { UserContext } from "../context/user.context.jsx";
 import Markdown from "markdown-to-jsx";
 
-/**
- * Project.jsx - Chat + Workspace viewer + WebContainer runner integrated.
- *
- * Requirements:
- *   npm i @webcontainer/api
- *
- * Note:
- * - This file includes a robust safeDecode helper that handles varied chunk shapes.
- * - The runWorkspace and dependency streaming code uses safeDecode everywhere.
- * - Ensure your app is served with COOP/COEP headers (vite.config or server) so WebContainer can boot.
- */
 
 // -------------------- Utility helpers --------------------
 const safeString = (v, fallback = "") => {
