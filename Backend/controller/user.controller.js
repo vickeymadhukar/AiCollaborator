@@ -36,8 +36,8 @@ export const createUsercontroller = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // set to true in production (HTTPS)
-      sameSite: "lax", // or "none" if cross-origin
+      secure: true, // set to true in production (HTTPS)
+      sameSite: "none", // or "none" if cross-origin
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
@@ -95,8 +95,8 @@ export const loginuserController = async (req, res) => {
     // ✅ Store token in cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // true in production
-      sameSite: "lax",
+      secure: true, // true in production
+      sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
