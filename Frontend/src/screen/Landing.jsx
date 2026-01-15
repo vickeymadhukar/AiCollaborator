@@ -24,7 +24,7 @@ const Landing = () => {
         <nav className="flex items-center gap-8 rounded-full border border-white/10 bg-white/5 px-8 py-3 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.6)]">
           
           <span className="text-xs font-semibold tracking-[0.25em] uppercase text-fuchsia-200/80">
-            VIKAS.DEV
+            AI BATCHIT
           </span>
 
           <ul className="hidden md:flex items-center gap-6 text-sm text-slate-100/80">

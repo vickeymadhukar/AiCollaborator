@@ -49,8 +49,8 @@ const Homepage = () => {
       {/* Sidebar - Fixed Left */}
       <aside className="hidden md:flex flex-col w-64 bg-[#1E293B] text-white p-4">
         <div className="flex items-center gap-3 mb-10 px-2">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold">P</div>
-          <span className="text-xl font-bold tracking-tight">Proflow</span>
+          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold">AI</div>
+          <span className="text-xl font-bold tracking-tight">AI BATCHIT</span>
         </div>
         <nav className="space-y-1">
           <button className="w-full flex items-center gap-3 px-3 py-2 bg-indigo-600 rounded-lg text-sm font-medium transition-colors">
