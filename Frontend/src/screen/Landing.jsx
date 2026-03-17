@@ -77,7 +77,6 @@ const Landing = () => {
 
           <div className="mt-8 flex flex-col items-center gap-10">
 
-            {/* Desktop Semi-circle */}
           <div className="cardcontainer hidden md:flex justify-center gap-2">
   <ProjectCard project={projects[0]} className="rotate-[-10deg] translate-y-4" />
   <ProjectCard project={projects[1]} className="rotate-[-5deg] translate-y-2" />
@@ -107,13 +106,11 @@ const Landing = () => {
     You can explore the features, usage flow, and how to get started.
   </p>
 
-  {/* VIDEO WRAPPER */}
   <div className="mt-8 relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_18px_40px_rgba(0,0,0,0.6)]">
     
-    {/* Replace this with your own video link */}
     <iframe
       className="w-full h-full"
-      src=""
+      src="https://drive.google.com/file/d/1pL92x5kPqAWV_09ivD4qKxDjJKqrHfRo/view?usp=sharing"
       title="Demo Video"
       frameBorder="0"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
