@@ -1,4 +1,5 @@
 import Projectmodel from "../models/project.model.js";
+import Invitation from "../models/invitation.model.js";
 
 export const createProject = async (name, userId) => {
   if (!name) {
@@ -83,6 +84,89 @@ export const getProjectById = async (projectId) => {
       "email"
     );
     return project;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const sendInvitation = async (projectId, senderId, receiverId) => {
+  if (!projectId || !senderId || !receiverId) {
+    throw new Error("Project ID, Sender ID, and Receiver ID are required");
+  }
+
+  try {
+    const project = await Projectmodel.findById(projectId);
+    if (!project) throw new Error("Project not found");
+
+    if (project.Users.includes(receiverId)) {
+      throw new Error("User is already a member of this project");
+    }
+
+    const existingInvite = await Invitation.findOne({
+      project: projectId,
+      receiver: receiverId,
+      status: "pending",
+    });
+
+    if (existingInvite) {
+      throw new Error("Invitation already sent");
+    }
+
+    const invitation = await Invitation.create({
+      project: projectId,
+      sender: senderId,
+      receiver: receiverId,
+    });
+
+    return invitation;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const getPendingInvitations = async (userId) => {
+  if (!userId) throw new Error("User ID is required");
+  try {
+    const invitations = await Invitation.find({ receiver: userId, status: "pending" })
+      .populate("project", "name description")
+      .populate("sender", "name email");
+    return invitations;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const acceptInvitation = async (invitationId, userId) => {
+  if (!invitationId || !userId) throw new Error("Invitation ID and User ID are required");
+  try {
+    const invitation = await Invitation.findOne({ _id: invitationId, receiver: userId, status: "pending" });
+    if (!invitation) throw new Error("Invitation not found or already processed");
+
+    invitation.status = "accepted";
+    await invitation.save();
+
+    const project = await Projectmodel.findById(invitation.project);
+    if (project && !project.Users.includes(userId)) {
+      project.Users.push(userId);
+      await project.save();
+    }
+
+    return { invitation, project };
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const rejectInvitation = async (invitationId, userId) => {
+  if (!invitationId || !userId) throw new Error("Invitation ID and User ID are required");
+  try {
+    const invitation = await Invitation.findOne({ _id: invitationId, receiver: userId, status: "pending" });
+    if (!invitation) throw new Error("Invitation not found or already processed");
+
+    invitation.status = "rejected";
+    await invitation.save();
+
+    return invitation;
   } catch (err) {
     throw err;
   }

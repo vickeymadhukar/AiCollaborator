@@ -31,4 +31,30 @@ router.get(
   projectController.getProjectById
 );
 
+router.post(
+  "/invite",
+  authUser,
+  body("projectId").isMongoId().withMessage("Valid project ID is required"),
+  body("receiverId").isMongoId().withMessage("Valid receiver ID is required"),
+  projectController.inviteUser
+);
+
+router.get(
+  "/invitations",
+  authUser,
+  projectController.getInvitations
+);
+
+router.post(
+  "/invitations/:invitationId/accept",
+  authUser,
+  projectController.acceptInvite
+);
+
+router.post(
+  "/invitations/:invitationId/reject",
+  authUser,
+  projectController.rejectInvite
+);
+
 export default router;

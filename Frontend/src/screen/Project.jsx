@@ -442,9 +442,14 @@ const Project = () => {
   const handleAddFromList = (u) => {
     if (!u) return;
     if (isAlreadyAdded(u)) return;
-    axios.put("/project/add-user", { projectId, users: [u._id ?? u.email ?? u.name] })
-      .then(res => setUsersState(s => [...s, u]))
-      .catch(err => console.error(err));
+    axios.post("/project/invite", { projectId, receiverId: u._id })
+      .then(res => {
+         alert("Invitation sent to " + (u.name || u.email));
+      })
+      .catch(err => {
+         console.error(err);
+         alert("Failed to send invitation or invitation already sent.");
+      });
   };
 
   const filteredAvailable = availableUsers.filter(u => {
@@ -685,7 +690,7 @@ const Project = () => {
                             <div className="font-medium text-gray-100">{safeString(u.name ?? u.email, "User")}</div>
                           </div>
                         </div>
-                        <button onClick={() => handleAddFromList(u)} className="p-2 mr-1 rounded-full bg-gray-700 hover:bg-indigo-600 text-gray-300 hover:text-white transition-colors" title="Add User">
+                        <button onClick={() => handleAddFromList(u)} className="p-2 mr-1 rounded-full bg-gray-700 hover:bg-indigo-600 text-gray-300 hover:text-white transition-colors" title="Invite User">
                           <FiUserPlus className="w-4 h-4" />
                         </button>
                       </li>
@@ -708,7 +713,7 @@ const Project = () => {
                         key={key}
                         onClick={() => !added && handleAddFromList(u)}
                         className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-semibold transition-transform border border-gray-700 ${added ? "bg-gray-700 opacity-50 cursor-default" : "bg-gradient-to-br from-indigo-500 to-purple-500 cursor-pointer shadow-sm hover:scale-110"}`}
-                        title={`${safeString(u.name ?? u.email, "User")} ${added ? "(Added)" : "(Click to Add)"}`}
+                        title={`${safeString(u.name ?? u.email, "User")} ${added ? "(Added)" : "(Click to Invite)"}`}
                       >
                         {initial}
                       </div>
