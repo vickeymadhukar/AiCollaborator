@@ -71,7 +71,7 @@ Now, generate such a workspace for the following user request.
     });
 
     if (!response || !response.text) {
-      throw new Error("No response from AI model");
+      throw new Error(`No response from AI model. Response details: ${JSON.stringify(response)}`);
     }
 
     // IMPORTANT: response.text ab ek JSON string hoga
