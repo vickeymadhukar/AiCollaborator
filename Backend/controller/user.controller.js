@@ -186,8 +186,8 @@ export const forgotPasswordController = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     // Create reset url 
-    // Fallback order: req.headers.origin -> process.env.FRONTEND_URL -> http://localhost:5173
-    const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Fallback order: req.headers.origin -> process.env.FRONTEND_URL -> https://aicollaborator-1.onrender.com
+    const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || 'https://aicollaborator-1.onrender.com';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
     const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please open this link to reset your password: \n\n ${resetUrl}`;
