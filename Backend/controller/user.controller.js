@@ -3,11 +3,12 @@ import userModel from "../models/user.model.js";
 import * as services from "../services/user.service.js";
 import { validationResult } from "express-validator";
 import redisClient from "../services/redis.service.js";
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 
 // ===================== REGISTER CONTROLLER =====================
 export const createUsercontroller = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -163,5 +164,100 @@ export const getalluser = async (req, res) => {
       message: "Internal server error",
       error: err.message,
     });
+  }
+};
+
+// ===================== FORGOT PASSWORD CONTROLLER =====================
+export const forgotPasswordController = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Please provide an email" });
+  }
+
+  try {
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "There is no user with that email" });
+    }
+
+    // Get reset token
+    const resetToken = user.getResetPasswordToken();
+
+    await user.save({ validateBeforeSave: false });
+
+    // Create reset url 
+    // Fallback order: req.headers.origin -> process.env.FRONTEND_URL -> http://localhost:5173
+    const frontendUrl = req.headers.origin || process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please open this link to reset your password: \n\n ${resetUrl}`;
+
+    // Setup nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'vikasmadhukar1430@gmail.com',
+        pass: process.env.APP_PASSWORD
+      }
+    });
+
+    const mailOptions = {
+      from: 'vikasmadhukar1430@gmail.com',
+      to: user.email,
+      subject: 'Password Reset Token',
+      text: message
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ success: true, message: 'Email sent' });
+
+  } catch (error) {
+    console.error("Forgot password error: ", error);
+    // Remove token fields if email fails
+    const user = await userModel.findOne({ email });
+    if (user) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+    }
+    return res.status(500).json({ success: false, message: 'Email could not be sent' });
+  }
+};
+
+// ===================== RESET PASSWORD CONTROLLER =====================
+export const resetPasswordController = async (req, res) => {
+  try {
+    // Get hashed token
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(req.params.token)
+      .digest('hex');
+
+    const user = await userModel.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    // Set new password
+    if (!req.body.password || req.body.password.length < 3) {
+      return res.status(400).json({ success: false, message: 'Password is required and should be at least 3 characters long' });
+    }
+
+    user.password = await userModel.Hashpassword(req.body.password);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+
+  } catch (error) {
+    console.error("Reset password error: ", error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

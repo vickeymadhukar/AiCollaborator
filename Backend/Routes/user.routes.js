@@ -22,4 +22,17 @@ router.post(
 router.get("/profile", authUser, userController.ProfileController);
 router.get("/logout", authUser, userController.logoutController);
 router.get("/all", authUser, userController.getalluser);
+
+router.post(
+  "/forgot-password",
+  body("email").isEmail(),
+  userController.forgotPasswordController
+);
+
+router.post(
+  "/reset-password/:token",
+  body("password").isLength({ min: 3 }),
+  userController.resetPasswordController
+);
+
 export default router;

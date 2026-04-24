@@ -17,7 +17,6 @@ const io = new Server(server, {
   },
 });
 
-// helper to parse cookie string and return object
 const parseCookies = (cookieHeader = "") =>
   cookieHeader
     .split(";")
@@ -100,12 +99,22 @@ io.on("connection", (socket) => {
     if (isAipresentinprompt) {
       console.log("AI mention detected in message:", message);
       const prompt = message.replace(/@ai /gi, "").trim();
+
+      io.to(socket.roomId).emit("typing", {
+        user: { name: "AI" },
+        isTyping: true
+      });
+
       const result = await generateContent(prompt);
+
+      io.to(socket.roomId).emit("typing", {
+        user: { name: "AI" },
+        isTyping: false
+      });
 
       io.to(socket.roomId).emit("project-message", {
         user: "AI",
-        message: result.result,
-
+        message: result.success ? result.result : `Sorry, I encountered an error: ${result.error}`,
         timestamp: new Date(),
       });
     }
@@ -115,6 +124,13 @@ io.on("connection", (socket) => {
       user: socket.user,
       message: data.text,
       timestamp: new Date(),
+    });
+  });
+
+  socket.on("typing", (data) => {
+    socket.broadcast.to(socket.roomId).emit("typing", {
+      user: socket.user,
+      isTyping: data.isTyping
     });
   });
 

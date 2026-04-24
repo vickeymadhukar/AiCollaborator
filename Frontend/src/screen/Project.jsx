@@ -1,7 +1,7 @@
 // src/screen/Project.jsx
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { useLocation } from "react-router-dom";
-import { FiUsers, FiX, FiChevronLeft, FiUserPlus, FiMaximize2, FiPlay } from "react-icons/fi";
+import { useLocation, useNavigate } from "react-router-dom";
+import { FiUsers, FiX, FiChevronLeft, FiUserPlus, FiMaximize2, FiPlay, FiUserCheck, FiHome } from "react-icons/fi";
 import axios from "../config/axios.js";
 import { initializeSocket, receviceMessage, sendMessage } from "../config/socket.js";
 import { UserContext } from "../context/user.context.jsx";
@@ -20,7 +20,6 @@ const safeString = (v, fallback = "") => {
   return fallback;
 };
 
-// strip possible triple backticks and leading ```json if present
 const stripCodeFence = (raw) => {
   if (!raw) return raw;
   if (typeof raw !== "string") return raw;
@@ -42,8 +41,7 @@ const parseAiWorkspace = (raw) => {
   return null;
 };
 
-// ------------------ URL detection helpers (permanent) ------------------
-// Use RegExp constructor to avoid parser escaping/syntax issues
+
 const URL_REGEX_SOURCE = 'https?:\\/\\/(?:127\\.0\\.0\\.1:\\d+|localhost:\\d+|[^\\s/]+(?:\\/[^\s]*)?)';
 const URL_REGEX = new RegExp(URL_REGEX_SOURCE, 'i');
 const HOST_PORT_REGEX = new RegExp('(127\\.0\\.0\\.1|localhost):\\d+', 'i');
@@ -53,23 +51,23 @@ const detectServerUrlFromText = (text) => {
   const s = typeof text === "string" ? text : String(text);
   const m = s.match(URL_REGEX);
   if (m && m[0]) {
-    try { return new URL(m[0].trim()).href; } catch {}
+    try { return new URL(m[0].trim()).href; } catch { }
   }
   const hp = s.match(HOST_PORT_REGEX);
   if (hp && hp[0]) {
-    try { return new URL(`http://${hp[0].trim()}`).href; } catch {}
+    try { return new URL(`http://${hp[0].trim()}`).href; } catch { }
   }
   const tokens = s.split(/\s+/);
   for (const t of tokens) {
     if (t.includes('://') || t.includes('localhost') || t.includes('127.0.0.1') || t.match(/:\d+$/)) {
       const maybe = t.replace(/[\]\)\.?,;'"`]$/g, '');
-      try { return new URL(maybe.includes('://') ? maybe : `http://${maybe}`).href; } catch {}
+      try { return new URL(maybe.includes('://') ? maybe : `http://${maybe}`).href; } catch { }
     }
   }
   return null;
 };
 
-// ------------------ workspace -> tree converter ------------------
+
 const workspaceToTree = (workspace, rootName = "app") => {
   const tree = {};
   tree[rootName] = { directory: {} };
@@ -98,16 +96,14 @@ const workspaceToTree = (workspace, rootName = "app") => {
   return tree;
 };
 
-// ------------------ robust decoder helper (permanent) ------------------
 const _textDecoder = new TextDecoder();
 
 function safeDecode(chunk) {
   if (chunk === null || chunk === undefined) return "";
 
-  // 1) already a string
+
   if (typeof chunk === "string") return chunk;
 
-  // 2) Node Buffer (when running in Node-like env)
   if (typeof Buffer !== "undefined" && typeof Buffer.isBuffer === "function" && Buffer.isBuffer(chunk)) {
     try {
       return chunk.toString("utf8");
@@ -116,26 +112,25 @@ function safeDecode(chunk) {
     }
   }
 
-  // 3) TypedArray / ArrayBufferView
   try {
     if (ArrayBuffer.isView(chunk)) {
       return _textDecoder.decode(chunk);
     }
   } catch (e) { /* fallthrough */ }
 
-  // 4) ArrayBuffer
+
   try {
     if (chunk instanceof ArrayBuffer) {
       return _textDecoder.decode(new Uint8Array(chunk));
     }
   } catch (e) { /* fallthrough */ }
 
-  // 5) Some libs send plain Arrays of numbers
+
   if (Array.isArray(chunk) && chunk.every(n => typeof n === "number")) {
     try { return _textDecoder.decode(new Uint8Array(chunk)); } catch (e) { /* fallthrough */ }
   }
 
-  // 6) Some streams deliver objects with a `buffer` or `data` property
+
   if (typeof chunk === "object") {
     try {
       if (chunk.buffer instanceof ArrayBuffer) {
@@ -157,16 +152,16 @@ async function ensureDir(container, dirPath) {
   if (!dirPath) return;
   try {
     if (container.fs && typeof container.fs.mkdir === "function") {
-      await container.fs.mkdir(dirPath, { recursive: true }).catch(()=>{});
+      await container.fs.mkdir(dirPath, { recursive: true }).catch(() => { });
       return;
     }
-  } catch {}
+  } catch { }
   // fallback iterative create
   const parts = dirPath.split("/").filter(Boolean);
   let cur = "";
   for (const p of parts) {
     cur = cur ? `${cur}/${p}` : p;
-    try { if (container.fs && typeof container.fs.mkdir === "function") await container.fs.mkdir(cur).catch(()=>{}); } catch {}
+    try { if (container.fs && typeof container.fs.mkdir === "function") await container.fs.mkdir(cur).catch(() => { }); } catch { }
   }
 }
 
@@ -182,12 +177,12 @@ async function writeTreeFallback(container, tree, basePrefix = "") {
           await ensureDir(container, dirOfFile);
           if (child.file.symlink) {
             if (container.fs && typeof container.fs.symlink === "function") {
-              try { await container.fs.symlink(child.file.symlink, childPath); continue; } catch {}
+              try { await container.fs.symlink(child.file.symlink, childPath); continue; } catch { }
             }
-            try { await container.fs.writeFile(childPath, `// symlink -> ${child.file.symlink}`); } catch {}
+            try { await container.fs.writeFile(childPath, `// symlink -> ${child.file.symlink}`); } catch { }
           } else {
             const contents = child.file.contents ?? "";
-            try { await container.fs.writeFile(childPath, contents); } catch {}
+            try { await container.fs.writeFile(childPath, contents); } catch { }
           }
         } else if (child.directory) {
           await ensureDir(container, childPath);
@@ -238,7 +233,7 @@ async function getWebContainerInstance() {
 }
 
 // ------------------ runner: install + run + stream (uses safeDecode) ------------------
-async function runWorkspace({ workspace, tree, appendLog = ()=>{}, setServerUrl = ()=>{} }) {
+async function runWorkspace({ workspace, tree, appendLog = () => { }, setServerUrl = () => { } }) {
   if (!workspace && !tree) throw new Error("workspace or tree required");
 
   const container = await getWebContainerInstance();
@@ -256,7 +251,7 @@ async function runWorkspace({ workspace, tree, appendLog = ()=>{}, setServerUrl 
         const node = finalTree[top];
         if (node && node.directory && node.directory["package.json"]) return true;
       }
-    } catch {}
+    } catch { }
     return false;
   })();
 
@@ -289,20 +284,20 @@ async function runWorkspace({ workspace, tree, appendLog = ()=>{}, setServerUrl 
   if (hasPkg) {
     try {
       if (container.fs && typeof container.fs.readFile === "function") {
-        const raw = await container.fs.readFile("app/package.json", "utf8").catch(()=>null);
+        const raw = await container.fs.readFile("app/package.json", "utf8").catch(() => null);
         if (raw) {
           const pkg = JSON.parse(raw);
           if (pkg && pkg.scripts && pkg.scripts.start) runCommand = "cd app && npm run start";
         }
       }
-    } catch {}
+    } catch { }
   }
 
   appendLog("Starting: " + runCommand + "\n");
   const runProc = await container.spawn("bash", ["-lc", runCommand]);
 
   // stream output & detect server URL (robust & uses safeDecode)
-  (async ()=>{
+  (async () => {
     try {
       let buffer = "";
       if (runProc.output && typeof runProc.output.getReader === "function") {
@@ -344,6 +339,7 @@ async function runWorkspace({ workspace, tree, appendLog = ()=>{}, setServerUrl 
 
 // -------------------- Project component --------------------
 const Project = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const project = location.state?.project ?? {};
 
@@ -354,6 +350,7 @@ const Project = () => {
   const [projectss, setProjectss] = useState(project || {});
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [typingUsers, setTypingUsers] = useState({});
 
   // workspace + tree
   const [workspace, setWorkspace] = useState(null);
@@ -390,6 +387,19 @@ const Project = () => {
         time: new Date().toLocaleTimeString()
       }]);
     });
+
+    receviceMessage("typing", (data) => {
+      const userName = data?.user?.name || data?.user?.email || "Someone";
+      setTypingUsers(prev => {
+        const next = { ...prev };
+        if (data.isTyping) {
+          next[userName] = true;
+        } else {
+          delete next[userName];
+        }
+        return next;
+      });
+    });
   }, [projectId]);
 
   useEffect(() => {
@@ -408,7 +418,20 @@ const Project = () => {
     const obj = { id: Date.now(), text: message, sender: "me", author: user?.name || "Me", time: new Date().toLocaleTimeString() };
     setMessages(prev => [...prev, obj]);
     sendMessage("project-message", obj);
+    sendMessage("typing", { isTyping: false });
     setMessage("");
+  };
+
+  const handleTyping = (e) => {
+    const val = e.target.value;
+    const wasEmpty = message.trim().length === 0;
+    const isEmpty = val.trim().length === 0;
+    setMessage(val);
+    if (wasEmpty && !isEmpty) {
+      sendMessage("typing", { isTyping: true });
+    } else if (!wasEmpty && isEmpty) {
+      sendMessage("typing", { isTyping: false });
+    }
   };
 
   const isAlreadyAdded = (u) => {
@@ -428,7 +451,7 @@ const Project = () => {
     if (isAlreadyAdded(u)) return false;
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
-    return ( (u.name ?? "").toString().toLowerCase().includes(q) || (u.email ?? "").toString().toLowerCase().includes(q) );
+    return ((u.name ?? "").toString().toLowerCase().includes(q) || (u.email ?? "").toString().toLowerCase().includes(q));
   });
 
   const activeFile = workspace?.files?.find(f => f.path === activeFilePath) || null;
@@ -482,9 +505,14 @@ const Project = () => {
       {/* CHAT LEFT */}
       <aside className="w-80 min-w-[18rem] bg-gray-800 border-r border-gray-700 flex flex-col h-screen">
         <header className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-          <div>
-            <h2 className="text-sm font-semibold">{projectss?.name ?? project?.name ?? "Project"}</h2>
-            <div className="text-xs text-gray-400">{projectss?.description ?? project?.description ?? "No description"}</div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate("/home")} className="p-2 -ml-2 rounded-md hover:bg-gray-700 transition-colors" title="Go Home">
+              <FiHome className="w-5 h-5 text-gray-300" />
+            </button>
+            <div>
+              <h2 className="text-sm font-semibold">{projectss?.name ?? project?.name ?? "Project"}</h2>
+              <div className="text-xs text-gray-400">{projectss?.description ?? project?.description ?? "No description"}</div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setContributorsOpen(true)} className="p-2 rounded-md hover:bg-gray-700" title="Contributors"><FiUsers className="w-5 h-5 text-gray-200" /></button>
@@ -506,7 +534,7 @@ const Project = () => {
                   <div className={`px-4 py-2 rounded-2xl break-words ${isMe ? "bg-indigo-600 text-white rounded-br-none" : "bg-gray-700 text-gray-100 rounded-bl-none"}`}>
                     {aiWs ? (
                       <div className="text-xs">
-                        Generated workspace with <span className="font-semibold">{aiWs.files.length}</span> files{aiWs.files.length > 0 && (<>: <span className="text-gray-200">{aiWs.files.slice(0,3).map(f => f.path).join(", ")}{aiWs.files.length>3 && " ..."}</span></>)}
+                        Generated workspace with <span className="font-semibold">{aiWs.files.length}</span> files{aiWs.files.length > 0 && (<>: <span className="text-gray-200">{aiWs.files.slice(0, 3).map(f => f.path).join(", ")}{aiWs.files.length > 3 && " ..."}</span></>)}
                         <div className="mt-1 text-[11px] text-gray-300">Full file tree & code on the right panel.</div>
                       </div>
                     ) : msg.sender === "AI" ? (
@@ -527,9 +555,16 @@ const Project = () => {
           })}
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-700 flex gap-2 items-center">
-          <input placeholder='Type message or ask AI: "create an express server"' className="flex-1 bg-gray-700 text-gray-200 placeholder-gray-400 px-3 py-2 rounded-md outline-none border border-gray-700" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} />
-          <button onClick={send} disabled={!message.trim()} className="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white">Send</button>
+        <div className="px-4 border-t border-gray-700 pb-2">
+          {Object.keys(typingUsers).length > 0 && (
+            <div className="text-xs text-gray-400 pt-2 italic">
+              {Object.keys(typingUsers).join(", ")} {Object.keys(typingUsers).length === 1 ? "is" : "are"} typing...
+            </div>
+          )}
+          <div className="pt-2 flex gap-2 items-center">
+            <input placeholder='Type message or ask AI: "create an express server"' className="flex-1 bg-gray-700 text-gray-200 placeholder-gray-400 px-3 py-2 rounded-md outline-none border border-gray-700" value={message} onChange={handleTyping} onKeyDown={e => { if (e.key === "Enter") send(); }} />
+            <button onClick={send} disabled={!message.trim()} className="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white">Send</button>
+          </div>
         </div>
       </aside>
 
@@ -643,15 +678,16 @@ const Project = () => {
                     const key = u._id ?? u.email ?? u.name;
                     const initial = safeString(u.name ?? u.email ?? "U", "U").charAt(0).toUpperCase();
                     return (
-                      <li key={key} className="flex items-center justify-between px-2 py-1 rounded hover:bg-gray-800">
+                      <li key={key} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-800 transition-colors">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">{initial}</div>
                           <div className="text-sm">
                             <div className="font-medium text-gray-100">{safeString(u.name ?? u.email, "User")}</div>
-                            <div className="text-xs text-gray-400">{safeString(u.email, "")}</div>
                           </div>
                         </div>
-                        <div><button onClick={() => handleAddFromList(u)} className="text-xs px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white">Add</button></div>
+                        <button onClick={() => handleAddFromList(u)} className="p-2 mr-1 rounded-full bg-gray-700 hover:bg-indigo-600 text-gray-300 hover:text-white transition-colors" title="Add User">
+                          <FiUserPlus className="w-4 h-4" />
+                        </button>
                       </li>
                     );
                   })}
@@ -662,43 +698,40 @@ const Project = () => {
             <div className="mt-3 border-t pt-2 max-h-40 overflow-auto">
               <div className="text-xs text-gray-400 mb-2">All users</div>
               {availableUsers.length === 0 ? <div className="text-sm text-gray-500 px-2">No users available</div> : (
-                <ul className="space-y-1">
+                <div className="flex flex-wrap gap-2 px-1">
                   {availableUsers.map(u => {
                     const key = u._id ?? u.email ?? u.name;
                     const added = isAlreadyAdded(u);
                     const initial = safeString(u.name ?? u.email ?? "U", "U").charAt(0).toUpperCase();
                     return (
-                      <li key={key} className="flex items-center justify-between px-2 py-1 rounded hover:bg-gray-800">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">{initial}</div>
-                          <div className="text-sm">
-                            <div className="font-medium text-gray-100">{safeString(u.name ?? u.email, "User")}</div>
-                            <div className="text-xs text-gray-400">{safeString(u.email, "")}</div>
-                          </div>
-                        </div>
-                        <div><button onClick={() => handleAddFromList(u)} disabled={added} className={`text-xs px-2 py-1 rounded ${added ? "bg-gray-600 text-gray-300" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}>{added ? "Added" : "Add"}</button></div>
-                      </li>
+                      <div
+                        key={key}
+                        onClick={() => !added && handleAddFromList(u)}
+                        className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-semibold transition-transform border border-gray-700 ${added ? "bg-gray-700 opacity-50 cursor-default" : "bg-gradient-to-br from-indigo-500 to-purple-500 cursor-pointer shadow-sm hover:scale-110"}`}
+                        title={`${safeString(u.name ?? u.email, "User")} ${added ? "(Added)" : "(Click to Add)"}`}
+                      >
+                        {initial}
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
               )}
             </div>
           </div>
 
-          <ul className="space-y-3 flex-1 overflow-auto px-2 py-3">
-            {projectss?.Users?.map((u, i) => {
-              const initial = safeString(u.name ?? u.email ?? "U", "U").charAt(0).toUpperCase();
-              return (
-                <li key={u._id || i} className="flex items-center gap-3 p-3 rounded-md hover:bg-gray-800 cursor-pointer">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">{initial}</div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-100">{safeString(u.name ?? `User ${i+1}`, `User ${i+1}`)}</div>
-                    <div className="text-xs text-gray-400">{safeString(u.email, "")}</div>
+          <div className="flex-1 overflow-auto px-4 py-4 border-t border-gray-800">
+            <div className="text-xs text-gray-400 mb-3 uppercase tracking-wider">Project Members</div>
+            <div className="flex flex-wrap gap-2">
+              {projectss?.Users?.map((u, i) => {
+                const initial = safeString(u.name ?? u.email ?? "U", "U").charAt(0).toUpperCase();
+                return (
+                  <div key={u._id || i} className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold cursor-pointer border border-gray-800 shadow-sm hover:scale-110 transition-transform" title={safeString(u.name ?? u.email ?? `User ${i + 1}`, `User ${i + 1}`)}>
+                    {initial}
                   </div>
-                </li>
-              );
-            })}
-          </ul>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

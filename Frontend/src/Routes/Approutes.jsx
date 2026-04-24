@@ -5,6 +5,8 @@ import RegisterPage from '../screen/RegisterPage';
 import Homepage from '../screen/Homepage';
 import Project from '../screen/Project';
 import Landing from '../screen/Landing';
+import ForgotPassword from '../screen/ForgotPassword';
+import ResetPassword from '../screen/ResetPassword';
 const Approutes = () => {
   return (
     <div>
@@ -27,8 +29,16 @@ const Approutes = () => {
     <RegisterPage/>
                 }
                 />
-                  <Route path='/project' element={
+                <Route path='/project' element={
     <Project/>
+                }
+                />
+                <Route path='/forgot-password' element={
+                  <ForgotPassword/>
+                }
+                />
+                <Route path='/reset-password/:token' element={
+                  <ResetPassword/>
                 }
                 />
 

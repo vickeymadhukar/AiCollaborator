@@ -112,12 +112,12 @@ const {setUser}=useContext(UserContext);
 
           {/* Forgot Password */}
           <div className="text-right mt-3">
-            <a
-              href="#"
+            <Link
+              to="/forgot-password"
               className="text-sm text-blue-600 hover:underline transition-all"
             >
               Forgot your password?
-            </a>
+            </Link>
           </div>
 
           {/* Divider */}
