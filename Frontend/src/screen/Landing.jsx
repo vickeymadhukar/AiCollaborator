@@ -88,10 +88,10 @@ const Landing = () => {
               <p className="text-slate-400 mb-8 max-w-md mx-auto">
                 Due to browser security policies (COEP) required by WebContainers, this embedded video cannot be loaded directly in Firefox.
               </p>
-              <a 
-                href="https://drive.google.com/file/d/1pL92x5kPqAWV_09ivD4qKxDjJKqrHfRo/view?usp=sharing" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href="https://drive.google.com/file/d/1pL92x5kPqAWV_09ivD4qKxDjJKqrHfRo/view?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow hover:bg-blue-500 hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all"
               >
                 Open Video in New Tab
