@@ -8,7 +8,7 @@ export default defineConfig({
     // Add these response headers so WebContainer can use SharedArrayBuffer / WASM memory transfer
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Embedder-Policy": "credentialless",
     },
   },
 });

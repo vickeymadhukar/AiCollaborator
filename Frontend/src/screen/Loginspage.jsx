@@ -1,6 +1,6 @@
-import React, { useState,useContext } from "react";
+import React, { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaGoogle, FaFacebookF, FaEye } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
 import axios from "../config/axios";
 import { UserContext } from "../context/user.context";
 
@@ -9,7 +9,7 @@ const Loginspage = () => {
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState(""); // 🧠 Error message state
   const navigate = useNavigate();
-const {setUser}=useContext(UserContext);
+  const { setUser } = useContext(UserContext);
 
 
   async function submithandler(e) {
@@ -17,35 +17,35 @@ const {setUser}=useContext(UserContext);
     setErrorMsg(""); // clear previous errors
 
     try {
-      
+
       const res = await axios.post("user/login", { email, password });
-      
+
       console.log(res.data);
 
       localStorage.setItem("token", res.data.token);
 
       setUser(res.data.user); // set user in context
-      
+
       navigate("/home");
 
     } catch (err) {
       console.log(err);
       if (err.response) {
-      
+
         if (err.response.status === 404) {
           setErrorMsg(err.response.data.message || "Email not found.");
-        } 
+        }
         else if (err.response.status === 401) {
           setErrorMsg(err.response.data.message || "Incorrect password.");
-        } 
+        }
         else if (err.response.status === 400) {
           setErrorMsg("Please fill all fields correctly.");
-        } 
+        }
         else {
           setErrorMsg("Something went wrong. Please try again.");
         }
       }
-       else {
+      else {
         setErrorMsg("Server not reachable. Please try again later.");
       }
     }
@@ -120,26 +120,7 @@ const {setUser}=useContext(UserContext);
             </Link>
           </div>
 
-          {/* Divider */}
-          <div className="flex items-center my-6">
-            <span className="flex-1 h-px bg-gray-200"></span>
-            <span className="mx-2 text-gray-400 text-sm">Or sign in with</span>
-            <span className="flex-1 h-px bg-gray-200"></span>
-          </div>
 
-          {/* Social Login */}
-          <div className="flex justify-center gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:border-blue-400 transition-all">
-              <FaGoogle className="text-red-500" />
-              <span className="text-sm font-medium text-gray-700">Google</span>
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:border-blue-400 transition-all">
-              <FaFacebookF className="text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">
-                Facebook
-              </span>
-            </button>
-          </div>
 
           {/* Footer */}
           <p className="mt-8 text-center text-gray-500 text-sm">

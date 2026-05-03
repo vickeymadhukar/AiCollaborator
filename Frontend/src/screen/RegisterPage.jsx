@@ -1,6 +1,5 @@
-import React, { useState,useContext } from "react";
+import React, { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaGoogle, FaFacebookF } from "react-icons/fa";
 import axios from "../config/axios";
 import { UserContext } from "../context/user.context";
 const RegisterPage = () => {
@@ -9,7 +8,7 @@ const RegisterPage = () => {
   const [errorMsg, setErrorMsg] = useState(""); // 🧠 state for error message
   const navigate = useNavigate();
 
-const {setUser}=useContext(UserContext);
+  const { setUser } = useContext(UserContext);
 
   async function submithandler(e) {
     e.preventDefault();
@@ -21,7 +20,7 @@ const {setUser}=useContext(UserContext);
       localStorage.setItem("token", res.data.token);
 
       setUser(res.data.user); // set user in context
-      
+
       navigate("/home");
     } catch (err) {
       console.log(err);
@@ -110,26 +109,7 @@ const {setUser}=useContext(UserContext);
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center my-6">
-            <span className="flex-1 h-px bg-gray-200"></span>
-            <span className="mx-2 text-gray-400 text-sm">Or sign up with</span>
-            <span className="flex-1 h-px bg-gray-200"></span>
-          </div>
 
-          {/* Social Signup */}
-          <div className="flex justify-center gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:border-blue-400 transition-all">
-              <FaGoogle className="text-red-500" />
-              <span className="text-sm font-medium text-gray-700">Google</span>
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:border-blue-400 transition-all">
-              <FaFacebookF className="text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">
-                Facebook
-              </span>
-            </button>
-          </div>
 
           <p className="mt-8 text-center text-gray-500 text-sm">
             Already have an account?{" "}
