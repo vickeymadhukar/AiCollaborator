@@ -1,7 +1,11 @@
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
+import dotenv from "dotenv";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+dotenv.config();
+
+const ai = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
 });
 
 export const generateContent = async (prompt) => {
@@ -10,7 +14,6 @@ export const generateContent = async (prompt) => {
       throw new Error("Prompt must be a non-empty string");
     }
 
-    // 👇 Format instruction: hamesha workspace JSON do
     const formatInstruction = `
 You are helping users collaboratively build software projects.
 
@@ -61,23 +64,31 @@ Now, generate such a workspace for the following user request.
 
     const finalPrompt = `${formatInstruction}\n\nUSER REQUEST:\n${prompt}`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: finalPrompt,
-      config: {
-        systemInstruction:
-          "Follow the given instructions exactly. Output ONLY the JSON object described, with no extra text or markdown.",
-      },
+    const response = await ai.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Follow the given instructions exactly. Output ONLY the JSON object described, with no extra text or markdown.",
+        },
+        {
+          role: "user",
+          content: finalPrompt,
+        },
+      ],
+      temperature: 0.2,
     });
 
-    if (!response || !response.text) {
+    const text = response?.choices?.[0]?.message?.content;
+
+    if (!text) {
       throw new Error(`No response from AI model. Response details: ${JSON.stringify(response)}`);
     }
 
-    // IMPORTANT: response.text ab ek JSON string hoga
     return {
       success: true,
-      result: response.text,
+      result: text,
     };
   } catch (err) {
     console.error("AI generation error:", err);
